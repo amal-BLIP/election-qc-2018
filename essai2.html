@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <script src="https://cdn.jsdelivr.net/npm/ol@v10.4.0/dist/ol.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.4.0/ol.css">
+    <link rel="stylesheet" href="style.css"> <!-- Lien vers le fichier CSS externe -->    
+    <title>Election cironscription quebec</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js -->
+
+</head>
+<body>
+    <div style="
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    margin-top: 10px;">
+
+    <button id="toggleWMS" style="
+        padding: 3px;
+        background-color: white;
+        border: 1px solid black;
+        cursor: pointer;
+        font-size: 10px;">
+        Afficher WMS
+    </button>
+</div>
+
+<button id="toggleGeoJSON">Masquer les circonscriptions</button>
+
+    <p class="underline">Cartographie des élections générales du Québec en 2018</p>
+    <div id="map" class="map"></div>
+    <p class="Arial"> Les élections générales de 2018 au Québec se sont tenues le 1er octobre et ont marqué un tournant politique majeur. La CAQ a obtenu 74 des 125 sièges à l’Assemblée nationale, formant ainsi un gouvernement majoritaire. Ce scrutin a été marqué par un désir de changement des électeurs, notamment sur les questions d'immigration, d'économie et de services publics. Pour la première fois depuis des décennies, le clivage souverainiste-fédéraliste a laissé place à d’autres enjeux politiques.</p>
+    <script src="camenbert.js"></script>
+    
+
+    <!--script externe du camenbert-->
+
+    <h2>Répartition des votes d'avance</h2>
+    <canvas id="pieChart" width="50" height="50"></canvas> <!-- Zone du camembert -->
+    <script src="camenbert.js"></script> <!-- Ton script externe -->
+
+
+    <script type="text/javascript">
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([-72.33, 53.14]), // Coordonnées pour Québec
+                zoom: 4
+            })
+        });
+        // Ajouter la barre d'échelle OpenLayers
+        var scaleLineControl = new ol.control.ScaleLine({
+        units: 'metric', // Unités en mètres
+        bar: true,       // Activer le mode barre
+        steps: 4,        // Nombre de divisions
+        text: true,      // Afficher les valeurs numériques
+        minWidth: 100    // Largeur minimale en pixels
+       });
+
+       // Ajouter la barre d'échelle à la carte
+       map.addControl(scaleLineControl);
+
+        // Ajout du contrôle de position de la souris
+        var mousePosition = new ol.control.MousePosition({
+        coordinateFormat: ol.coordinate.createStringXY(2),
+        projection: 'EPSG:4326'
+        });
+        map.addControl(mousePosition); 
+
+        var partyColors = {
+            'C.A.Q.-E.F.L.': '#87CEEB', // Bleu clair
+            'P.L.Q./Q.L.P.': '#FF0000',  // Rouge
+            'P.Q.': '#00008B',          // Bleu foncé
+            'Q.S.': '#FFA500'           // Orange
+        };
+
+        var wmsLayer = new ol.layer.Tile({
+    source: new ol.source.TileWMS({
+        url: 'https://ws.mapserver.transports.gouv.qc.ca/swtq?service=wms&request=getcapabilities',
+        params: {
+            'LAYERS': 'lieuhabite', 
+            'TILED': true,
+            'FORMAT': 'image/png'
+            
+        },
+        serverType:'geoserver',
+        crossOrigin: 'anonymous'
+    })
+});
+        var vectorLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                url: 'circo-electo-electo-2022-reprojete-2.geojson',
+                format: new ol.format.GeoJSON()
+            }),
+            style: new ol.style.Style({
+                stroke: new ol.style.Stroke({ color: 'blue', width: 2 }),
+                fill: new ol.style.Fill({ color: 'rgba(0, 0, 255, 0.1)' })
+            })
+        });
+
+
+// ajout la couche WMSS à la carte mais la cache par défaut 
+wmsLayer.setVisible(false);
+map.addLayer(wmsLayer);
+
+
+//gere l affichage / masquage via le bouton 
+document.getElementById('toggleWMS').addEventListener('click', function () {
+    var visible = wmsLayer.getVisible();
+    wmsLayer.setVisible(!visible);
+    this.textContent = visible ? "Afficher les grands centres d'habitations" : "Masquer les grands centres d'habitations";
+});
+
+
+        var tooltip = document.getElementById('tooltip');
+        
+        map.on('pointermove', function (event) {
+            var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
+                return feature;
+            });
+            
+            if (feature) {
+                var parti = feature.get('candidats_Abreviation du parti politique') || 'Inconnu';
+                var color = partyColors[parti] || 'rgba(0, 0, 255, 0.1)';
+
+                feature.setStyle(new ol.style.Style({
+                    stroke: new ol.style.Stroke({ color: 'black', width: 3 }),
+                    fill: new ol.style.Fill({ color: color })
+                }));
+                
+                tooltip.innerHTML = `<b>Parti :</b> ${parti}`;
+                tooltip.style.left = (event.pixel[0] + 15) + 'px';
+                tooltip.style.top = (event.pixel[1] + 15) + 'px';
+                tooltip.style.display = 'block';
+            } else {
+                vectorLayer.getSource().forEachFeature(function (feature) {
+                    feature.setStyle(new ol.style.Style({
+                        stroke: new ol.style.Stroke({ color: 'blue', width: 2 }),
+                        fill: new ol.style.Fill({ color: 'rgba(0, 0, 255, 0.1)' })
+                    }));
+                });
+                tooltip.style.display = 'none';
+            }
+        });
+
+        // Ajouter une couche GeoJSON
+var vectorLayer = new ol.layer.Vector({
+    source: new ol.source.Vector({
+        url: 'circo-electo-electo-2022-reprojete-2.geojson', // Chemin de ton fichier
+        format: new ol.format.GeoJSON()
+    }),
+    style: new ol.style.Style({
+        stroke: new ol.style.Stroke({
+            color: 'black', // Couleur des contours
+            width: 2
+        }),
+        fill: new ol.style.Fill({
+            color: 'rgba(0, 0, 255, 0.1)' // Couleur de remplissage
+        }),
+    })
+});
+
+// Ajout de la couche à la carte
+map.addLayer(vectorLayer);
+
+// Gestion de l'affichage / masquage via le bouton
+document.getElementById('toggleGeoJSON').addEventListener('click', function () {
+    var visible = vectorLayer.getVisible();
+    vectorLayer.setVisible(!visible);
+    this.textContent = visible ? "Afficher la carte des élections générales" : "Masquer la carte des élections générales";
+});
+
+// Création d'un overlay (popup flottante) 
+var tooltip = document.createElement('div');
+tooltip.style.position = 'absolute';
+tooltip.style.background = '#ADD8E6';
+tooltip.style.padding = '2px';
+tooltip.style.border = '0.5px solid black';
+tooltip.style.display = 'none';
+tooltip.style.pointerEvents = 'none';
+document.body.appendChild(tooltip);
+
+// Gestion des événements de la souris pour afficher les informations de la circonscription
+map.on('pointermove', function(event) {
+    var feature = map.forEachFeatureAtPixel(event.pixel, function(feature) {
+        return feature;
+    });
+
+    if (feature) {
+        // Récupération des informations
+        var nomCirconscription = feature.get('NM_CEP') || 'Inconnu';
+        var candidatNom = feature.get('candidats_Nom') || 'Inconnu';
+        var candidatPrenom = feature.get('candidats_PrEnom') || 'Inconnu';
+        var parti = feature.get('candidats_Abreviation du parti politique') || 'Inconnu';
+
+        // Affichage des informations dans le tooltip
+        tooltip.innerHTML = `
+            <b>Circonscription :</b> ${nomCirconscription}<br>
+            <b>Candidat :</b> ${candidatPrenom} ${candidatNom}<br>
+            <b>Parti :</b> ${parti}
+        `;
+
+        // Positionnement du tooltip
+        tooltip.style.left = (event.pixel[0] + 15) + 'px';
+        tooltip.style.top = (event.pixel[1] + 15) + 'px';
+        tooltip.style.display = 'block';
+    } else {
+        tooltip.style.display = 'none';
+    }
+});
+
+// Vue barre d echelle
+function updateScale() {
+    let zoomLevel = map.getView().getZoom();
+    let scaleValues = {
+        4: { text: '500 km', width: 100 },
+        5: { text: '250 km', width: 100 },
+        6: { text: '100 km', width: 100 },
+        7: { text: '50 km', width: 100 },
+        8: { text: '25 km', width: 100 },
+        9: { text: '10 km', width: 100 },
+        10: { text: '5 km', width: 100 },
+        11: { text: '2 km', width: 100 },
+        12: { text: '1 km', width: 100 }
+    };
+
+    let scale = scaleValues[Math.round(zoomLevel)] || scaleValues[6];
+    document.getElementById("scale-text").textContent = scale.text;
+    document.getElementById("scale-line").style.width = scale.width + "px";
+}
+   </script> 
+
+</body>
+</html>

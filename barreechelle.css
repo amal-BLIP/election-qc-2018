@@ -1,0 +1,8 @@
+.ol-scale-line {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: black;
+}

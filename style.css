@@ -1,0 +1,44 @@
+body{
+    margin: 0; 
+    padding: 0;
+    width: 90%;
+    height: 100vh;
+    display: flex; /* Active le centrage */
+    flex-direction: column;
+    justify-content: justify; /* Centre horizontalement */
+    align-items: center; /* Centre verticalement */
+}
+
+.map{
+    position: relative;
+    height: 80%;
+    width: 70%;
+    border: 2px solid black; 
+    
+}
+p.underline {
+    font-size: 15px; /* Taille de texte pour le titre */
+    font-weight: bold;
+    text-decoration: underline; /* Pour souligner le titre */
+    margin-bottom: 10px; /* Espacement entre le titre et la carte */
+
+}
+#pieChart {
+max-width: 100px; /* Largeur maximale */
+max-height: 100px; /* Hauteur maximale */
+width: 100%; /* Ajustement automatique */
+height: auto;
+display: block;
+position: absolute; /* Positionner absolument */
+top: 20px; /* Décaler de 20px du haut */
+right: 40px; /* Décaler de 20px du côté droit */
+
+}
+h2 {
+    font-size: 10px; /* Taille réduite pour le titre */
+    height: auto;
+    display: block;
+    position: absolute; /* Positionner absolument */
+    top: 0px; /* Décaler de 20px du haut */
+    right: 20px; /* Décaler de 20px du côté droit */
+}
